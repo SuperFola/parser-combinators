@@ -4,6 +4,8 @@
 #include <string>
 #include <cctype>
 
+#include "utf8_char.hpp"
+
 struct CharPred
 {
     const std::string name;
@@ -11,16 +13,16 @@ struct CharPred
     CharPred(const std::string& n) :
         name(n) {}
 
-    virtual bool operator()(const char c) const = 0;
+    virtual bool operator()(const utf8_char_t::codepoint_t c) const = 0;
 };
 
 inline struct IsSpace : public CharPred
 {
     IsSpace() :
         CharPred("space") {}
-    virtual bool operator()(const char c) const override
+    virtual bool operator()(const utf8_char_t::codepoint_t c) const override
     {
-        return std::isspace(c) != 0;
+        return 0 <= c && c <= 255 && std::isspace(c) != 0;
     }
 } IsSpace;
 
@@ -28,9 +30,9 @@ inline struct IsInlineSpace : public CharPred
 {
     IsInlineSpace() :
         CharPred("inline space") {}
-    virtual bool operator()(const char c) const override
+    virtual bool operator()(const utf8_char_t::codepoint_t c) const override
     {
-        return (std::isspace(c) != 0) && (c != '\n') && (c != '\r');
+        return 0 <= c && c <= 255 && (std::isspace(c) != 0) && (c != '\n') && (c != '\r');
     }
 } IsInlineSpace;
 
@@ -38,9 +40,9 @@ inline struct IsDigit : public CharPred
 {
     IsDigit() :
         CharPred("digit") {}
-    virtual bool operator()(const char c) const override
+    virtual bool operator()(const utf8_char_t::codepoint_t c) const override
     {
-        return std::isdigit(c) != 0;
+        return 0 <= c && c <= 255 && std::isdigit(c) != 0;
     }
 } IsDigit;
 
@@ -48,9 +50,9 @@ inline struct IsUpper : public CharPred
 {
     IsUpper() :
         CharPred("uppercase") {}
-    virtual bool operator()(const char c) const override
+    virtual bool operator()(const utf8_char_t::codepoint_t c) const override
     {
-        return std::isupper(c) != 0;
+        return 0 <= c && c <= 255 && std::isupper(c) != 0;
     }
 } IsUpper;
 
@@ -58,9 +60,9 @@ inline struct IsLower : public CharPred
 {
     IsLower() :
         CharPred("lowercase") {}
-    virtual bool operator()(const char c) const override
+    virtual bool operator()(const utf8_char_t::codepoint_t c) const override
     {
-        return std::islower(c) != 0;
+        return 0 <= c && c <= 255 && std::islower(c) != 0;
     }
 } IsLower;
 
@@ -68,9 +70,9 @@ inline struct IsAlpha : public CharPred
 {
     IsAlpha() :
         CharPred("alphabetic") {}
-    virtual bool operator()(const char c) const override
+    virtual bool operator()(const utf8_char_t::codepoint_t c) const override
     {
-        return std::isalpha(c) != 0;
+        return 0 <= c && c <= 255 && std::isalpha(c) != 0;
     }
 } IsAlpha;
 
@@ -78,9 +80,9 @@ inline struct IsAlnum : public CharPred
 {
     IsAlnum() :
         CharPred("alphanumeric") {}
-    virtual bool operator()(const char c) const override
+    virtual bool operator()(const utf8_char_t::codepoint_t c) const override
     {
-        return std::isalnum(c) != 0;
+        return 0 <= c && c <= 255 && std::isalnum(c) != 0;
     }
 } IsAlnum;
 
@@ -88,24 +90,24 @@ inline struct IsPrint : public CharPred
 {
     IsPrint() :
         CharPred("printable") {}
-    virtual bool operator()(const char c) const override
+    virtual bool operator()(const utf8_char_t::codepoint_t c) const override
     {
-        return std::isprint(c) != 0;
+        return 0 <= c && c <= 255 && std::isprint(c) != 0;
     }
 } IsPrint;
 
 struct IsChar : public CharPred
 {
-    explicit IsChar(const char c) :
-        CharPred("'" + std::string(1, c) + "'"), m_k(c)
+    explicit IsChar(const utf8_char_t::codepoint_t c) :
+        CharPred((0 <= c && c <= 255) ? ("'" + std::string(1, static_cast<char>(c)) + "'") : ("'utf8char'")), m_k(c)  // FIXME replace "utf8char" by the char itself?
     {}
-    virtual bool operator()(const char c) const override
+    virtual bool operator()(const utf8_char_t::codepoint_t c) const override
     {
         return m_k == c;
     }
 
 private:
-    const char m_k;
+    const utf8_char_t::codepoint_t m_k;
 };
 
 struct IsEither : public CharPred
@@ -113,7 +115,7 @@ struct IsEither : public CharPred
     explicit IsEither(const CharPred& a, const CharPred& b) :
         CharPred("(" + a.name + " | " + b.name + ")"), m_a(a), m_b(b)
     {}
-    virtual bool operator()(const char c) const override
+    virtual bool operator()(const utf8_char_t::codepoint_t c) const override
     {
         return m_a(c) || m_b(c);
     }
@@ -128,7 +130,7 @@ struct IsNot : public CharPred
     explicit IsNot(const CharPred& a) :
         CharPred("~" + a.name), m_a(a)
     {}
-    virtual bool operator()(const char c) const override
+    virtual bool operator()(const utf8_char_t::codepoint_t c) const override
     {
         return !m_a(c);
     }
@@ -141,7 +143,7 @@ inline struct IsSymbol : public CharPred
 {
     IsSymbol() :
         CharPred("sym") {}
-    virtual bool operator()(const char c) const override
+    virtual bool operator()(const utf8_char_t::codepoint_t c) const override
     {
         switch (c)
         {
@@ -172,7 +174,7 @@ inline struct IsAny : public CharPred
 {
     IsAny() :
         CharPred("any") {}
-    virtual bool operator()(const char) const override
+    virtual bool operator()(const utf8_char_t::codepoint_t) const override
     {
         return true;
     }

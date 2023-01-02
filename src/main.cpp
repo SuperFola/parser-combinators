@@ -25,7 +25,7 @@ void makeContext(std::ostream& os, const std::string& code, std::size_t line, st
 {
     std::vector<std::string> ctx = splitString(code, '\n');
 
-    // TODO use exp to do multiline hightlighting
+    // TODO use the variable 'exp' to do multiline hightlighting
 
     std::size_t col_end = std::min<std::size_t>(col_start + exp.size(), ctx[line].size());
     std::size_t first = line >= 3 ? line - 3 : 0;
@@ -81,7 +81,7 @@ int main(int argc, char* argv[])
                       << e.what() << "\n";
 
             std::string escaped_symbol;
-            switch (e.symbol)
+            switch (e.symbol.codepoint())
             {
                 case '\n': escaped_symbol = "'\\n'"; break;
                 case '\r': escaped_symbol = "'\\r'"; break;
@@ -90,7 +90,7 @@ int main(int argc, char* argv[])
                 case '\0': escaped_symbol = "EOF"; break;
                 case ' ': escaped_symbol = "' '"; break;
                 default:
-                    escaped_symbol = std::string(1, e.symbol);
+                    escaped_symbol = e.symbol.c_str();
             }
             // e.line + 1 because we start counting at 0 and every code editor line counts starts at 1
             std::cout << "At " << escaped_symbol << " @ " << (e.line + 1) << ":" << (e.col + 1) << std::endl;
