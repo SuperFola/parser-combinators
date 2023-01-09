@@ -32,7 +32,7 @@ public:
 
 private:
     std::string m_str;
-    std::string::iterator m_it;
+    std::string::iterator m_it, m_next_it;
     std::size_t m_row;
     std::size_t m_col;
     utf8_char_t m_sym;

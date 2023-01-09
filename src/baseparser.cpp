@@ -12,7 +12,7 @@ BaseParser::BaseParser(const std::string& s) :
         error("Expected symbol, got empty string", "");
     }
 
-    m_it = m_str.begin();
+    m_it = m_next_it = m_str.begin();
 
     // otherwise, get the first symbol
     next();
@@ -20,9 +20,11 @@ BaseParser::BaseParser(const std::string& s) :
 
 void BaseParser::next()
 {
+    m_it = m_next_it;
+
     // getting a character from the stream
-    auto [it, sym] = utf8_char_t::at(m_it);  // FIXME somehow the first '(' is seen but skipped? or is backtrack() not working?
-    m_it = it;
+    auto [it, sym] = utf8_char_t::at(m_it);
+    m_next_it = it;
     m_sym = sym;
 
     // TODO reimplement BaseParser::next()
@@ -40,8 +42,9 @@ void BaseParser::backtrack(long n)
 {
     backtrack_count++;
 
-    auto [it, sym] = utf8_char_t::at(m_str.begin() + n);
-    m_it = it;
+    m_it = m_str.begin() + n;
+    auto [it, sym] = utf8_char_t::at(m_it);
+    m_next_it = it;
     m_sym = sym;
 
     // TODO reimplement BaseParser::backtrack()
