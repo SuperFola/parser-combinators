@@ -43,7 +43,7 @@ Parser::Parser(const std::string& code, bool debug) :
         [this]() -> std::optional<Node> {
             std::string res;
             if (signedNumber(&res))
-                return Node(std::stoi(res));  // FIXME stoi?
+                return Node(std::stoi(res));  // FIXME is using stoi to create a number a good idea?
             return std::nullopt;
         },
         // strings
@@ -362,7 +362,7 @@ std::optional<Node> Parser::import_()
 
                 if (symbol.size() >= 2 && symbol[symbol.size() - 2] == ':' && symbol.back() == '*')
                 {
-                    backtrack(getCount() - 2);
+                    backtrack(getCount() - 2);  // we can backtrack n-2 safely here because we know the previos chars were ":*"
                     error("Star pattern can not follow a symbol to import", ":*");
                 }
 
@@ -445,6 +445,7 @@ std::optional<Node> Parser::function()
         }
         else
         {
+            auto pos = getCount();
             std::string symbol;
             if (!name(&symbol))
                 break;
@@ -452,7 +453,7 @@ std::optional<Node> Parser::function()
             {
                 if (has_captures)
                 {
-                    backtrack(getCount() - symbol.size());
+                    backtrack(pos);
                     error("Captured variables should be at the end of the argument list", symbol);
                 }
 

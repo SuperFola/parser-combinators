@@ -8,15 +8,16 @@
 #include <initializer_list>
 
 #include "predicates.hpp"
+#include "utf8_char.hpp"
 
 struct ParseError : public std::runtime_error
 {
     const std::size_t line;
     const std::size_t col;
     const std::string expr;
-    const char symbol;
+    const utf8_char_t symbol;
 
-    ParseError(const std::string& what, std::size_t lineNum, std::size_t column, std::string exp, char sym) :
+    ParseError(const std::string& what, std::size_t lineNum, std::size_t column, std::string exp, utf8_char_t sym) :
         std::runtime_error(what), line(lineNum), col(column), expr(std::move(exp)), symbol(sym)
     {}
 };
@@ -30,11 +31,11 @@ public:
     unsigned long backtrack_count;
 
 private:
-    std::string m_in;
-    std::size_t m_count;
+    std::string m_str;
+    std::string::iterator m_it, m_next_it;
     std::size_t m_row;
     std::size_t m_col;
-    char m_sym;
+    utf8_char_t m_sym;
 
     /*
         getting next character and changing the values of count/row/col/sym
@@ -42,6 +43,7 @@ private:
     void next();
 
 protected:
+    // TODO implement more error() helper functions (eg handle backtracking automatically?)
     inline void error(const std::string& error, const std::string exp)
     {
         throw ParseError(error, m_row, m_col, exp, m_sym);
@@ -50,11 +52,11 @@ protected:
     // basic getters
     inline std::size_t getCol() { return m_col; }
     inline std::size_t getRow() { return m_row; }
-    inline std::size_t getCount() { return m_count; }
-    inline std::size_t getSize() { return m_in.size(); }
-    inline bool isEOF() { return m_count > m_in.size() || m_sym == '\0'; }
+    inline long getCount() { return std::distance(m_str.begin(), m_it); }
+    inline std::size_t getSize() { return m_str.size(); }
+    inline bool isEOF() { return m_it == m_str.end(); }
 
-    void backtrack(std::size_t n);
+    void backtrack(long n);
 
     /*
         Function to use and check if a Character Predicate was able to parse

@@ -3,14 +3,16 @@
 #include <iostream>
 
 BaseParser::BaseParser(const std::string& s) :
-    backtrack_count(0), m_in(s), m_count(0), m_row(0), m_col(0)
+    backtrack_count(0), m_str(s), m_row(0), m_col(0)
 {
     // if the input string is empty, raise an error
     if (s.size() == 0)
     {
-        m_sym = EOF;
+        m_sym = utf8_char_t();
         error("Expected symbol, got empty string", "");
     }
+
+    m_it = m_next_it = m_str.begin();
 
     // otherwise, get the first symbol
     next();
@@ -18,40 +20,47 @@ BaseParser::BaseParser(const std::string& s) :
 
 void BaseParser::next()
 {
-    // getting a character from the stream
-    m_sym = m_in[m_count];
-    ++m_count;
+    m_it = m_next_it;
 
-    char previous_sym = m_count > 0 ? m_in[m_count - 1] : 0;
-    if (previous_sym == '\n')
-    {
-        ++m_row;
-        m_col = 0;
-    }
-    else if (0 <= m_sym && std::isprint(previous_sym))
-        ++m_col;
+    // getting a character from the stream
+    auto [it, sym] = utf8_char_t::at(m_it);
+    m_next_it = it;
+    m_sym = sym;
+
+    // TODO reimplement BaseParser::next()
+    // char previous_sym = m_count > 0 ? m_str[m_count - 1] : 0;
+    // if (previous_sym == '\n')
+    // {
+    //     ++m_row;
+    //     m_col = 0;
+    // }
+    // else if (0 <= m_sym && std::isprint(previous_sym))
+    //     ++m_col;
 }
 
-void BaseParser::backtrack(std::size_t n)
+void BaseParser::backtrack(long n)
 {
     backtrack_count++;
 
-    m_count = n;
-    m_sym = m_in[m_count - 1];
+    m_it = m_str.begin() + n;
+    auto [it, sym] = utf8_char_t::at(m_it);
+    m_next_it = it;
+    m_sym = sym;
 
-    m_row = 0;
-    m_col = 0;
-    // adjust the row/col count (this is going to be VERY inefficient)
-    for (std::size_t i = 0; i < n; ++i)
-    {
-        if (m_in[i] == '\n')
-        {
-            ++m_row;
-            m_col = 0;
-        }
-        else if (0 <= m_in[i] && std::isprint(m_in[i]))
-            ++m_col;
-    }
+    // TODO reimplement BaseParser::backtrack()
+    // m_row = 0;
+    // m_col = 0;
+    // // adjust the row/col count (this is going to be VERY inefficient)
+    // for (std::size_t i = 0; i < n; ++i)
+    // {
+    //     if (m_str[i] == '\n')
+    //     {
+    //         ++m_row;
+    //         m_col = 0;
+    //     }
+    //     else if (0 <= m_str[i] && std::isprint(m_str[i]))
+    //         ++m_col;
+    // }
 }
 
 bool BaseParser::accept(const CharPred& t, std::string* s)
@@ -60,11 +69,11 @@ bool BaseParser::accept(const CharPred& t, std::string* s)
         return false;
 
     // return false if the predicate couldn't consume the symbol
-    if (!t(m_sym))
+    if (!t(m_sym.codepoint()))
         return false;
     // otherwise, add it to the string and go to the next symbol
     if (s != nullptr)
-        s->push_back(m_sym);
+        *s += m_sym.c_str();
 
     next();
     return true;
@@ -73,11 +82,11 @@ bool BaseParser::accept(const CharPred& t, std::string* s)
 bool BaseParser::expect(const CharPred& t, std::string* s)
 {
     // throw an error if the predicate couldn't consume the symbol
-    if (!t(m_sym))
-        error("Expected " + t.name, std::string(1, m_sym));
+    if (!t(m_sym.codepoint()))
+        error("Expected " + t.name, m_sym.c_str());
     // otherwise, add it to the string and go to the next symbol
     if (s != nullptr)
-        s->push_back(m_sym);
+        *s += m_sym.c_str();
     next();
     return true;
 }
